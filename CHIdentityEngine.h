@@ -47,6 +47,7 @@
 - (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID;
 - (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID containerSeed:(NSString *)containerSeed;
 - (CHDeviceIdentity *)currentIdentity;
+- (NSString *)currentBundleID;
 - (void)resetIdentityForBundleID:(NSString *)bundleID;
 - (void)saveIdentities;
 - (void)loadIdentities;
