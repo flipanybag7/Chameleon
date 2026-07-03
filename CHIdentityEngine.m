@@ -1,5 +1,6 @@
 #import "CHIdentityEngine.h"
 #import <CommonCrypto/CommonCrypto.h>
+#import <objc/runtime.h>
 #import <sys/stat.h>
 #import <dlfcn.h>
 
@@ -307,6 +308,11 @@ static NSString *CHDeviceiPhoneModelForProductType(NSString *productType) {
     return map[productType] ?: @"iPhone";
 }
 
+@end
+
+@interface CHIdentityEngine ()
+@property (nonatomic, strong) NSMutableDictionary<NSString *, CHDeviceIdentity *> *identities;
+@property (nonatomic, copy) NSString *identitiesPath;
 @end
 
 @implementation CHIdentityEngine
