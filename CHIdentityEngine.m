@@ -311,6 +311,13 @@ static NSString *CHDeviceiPhoneModelForProductType(NSString *productType) {
 
 @implementation CHIdentityEngine
 
++ (BOOL)isHookEnabled:(NSString *)hookKey {
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.chameleon.prefs"];
+    if (![defaults boolForKey:@"Enabled"]) return NO;
+    if (!hookKey) return YES;
+    return [defaults boolForKey:hookKey];
+}
+
 + (instancetype)sharedEngine {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{

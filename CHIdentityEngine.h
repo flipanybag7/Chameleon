@@ -44,6 +44,7 @@
 @property (nonatomic, copy) NSString *identitiesPath;
 
 + (instancetype)sharedEngine;
++ (BOOL)isHookEnabled:(NSString *)hookKey;
 - (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID;
 - (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID containerSeed:(NSString *)containerSeed;
 - (CHDeviceIdentity *)currentIdentity;

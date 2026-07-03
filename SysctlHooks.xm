@@ -14,6 +14,9 @@ static int hooked_sysctlbyname(const char *name, void *oldp, size_t *oldlenp, vo
 }
 
 static int hooked_sysctl(int *mib, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofSysctl"]) {
+        return orig_sysctl(mib, namelen, oldp, oldlenp, newp, newlen);
+    }
     if (namelen >= 2 && mib[0] == CTL_HW && oldp && oldlenp) {
         CHDeviceIdentity *identity = [[CHIdentityEngine sharedEngine] currentIdentity];
         if (!identity) return orig_sysctl(mib, namelen, oldp, oldlenp, newp, newlen);
@@ -67,6 +70,9 @@ static int hooked_sysctl(int *mib, u_int namelen, void *oldp, size_t *oldlenp, v
 }
 
 static int hooked_sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofSysctl"]) {
+        return orig_sysctlbyname(name, oldp, oldlenp, newp, newlen);
+    }
     if (!name || !oldp || !oldlenp) {
         return orig_sysctlbyname(name, oldp, oldlenp, newp, newlen);
     }

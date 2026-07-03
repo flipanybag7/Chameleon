@@ -26,6 +26,10 @@ static CFTypeRef hooked_IORegistryEntryCreateCFProperty(io_registry_entry_t entr
         return orig_IORegistryEntryCreateCFProperty(entry, key, allocator, options);
     }
 
+    if (![CHIdentityEngine isHookEnabled:@"SpoofIOKit"]) {
+        return orig_IORegistryEntryCreateCFProperty(entry, key, allocator, options);
+    }
+
     NSString *keyStr = (__bridge NSString *)key;
     CHDeviceIdentity *identity = [[CHIdentityEngine sharedEngine] currentIdentity];
 

@@ -8,12 +8,14 @@ static NSString *CHCanvasProtectJS(void);
 - (instancetype)initWithFrame:(CGRect)frame configuration:(WKWebViewConfiguration *)configuration {
     WKWebView *webView = %orig;
 
-    NSString *js = CHCanvasProtectJS();
-    if (js) {
-        WKUserScript *script = [[WKUserScript alloc] initWithSource:js
-                                                      injectionTime:WKUserScriptInjectionTimeAtDocumentStart
-                                                   forMainFrameOnly:NO];
-        [webView.configuration.userContentController addUserScript:script];
+    if ([CHIdentityEngine isHookEnabled:@"SpoofCanvas"]) {
+        NSString *js = CHCanvasProtectJS();
+        if (js) {
+            WKUserScript *script = [[WKUserScript alloc] initWithSource:js
+                                                          injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                                                       forMainFrameOnly:NO];
+            [webView.configuration.userContentController addUserScript:script];
+        }
     }
 
     return webView;
@@ -26,17 +28,19 @@ static NSString *CHCanvasProtectJS(void);
 - (void)addUserScript:(WKUserScript *)userScript {
     %orig;
 
-    static dispatch_once_t once;
-    static NSString *protectJS = nil;
-    dispatch_once(&once, ^{
-        protectJS = CHCanvasProtectJS();
-    });
+    if ([CHIdentityEngine isHookEnabled:@"SpoofCanvas"]) {
+        static dispatch_once_t once;
+        static NSString *protectJS = nil;
+        dispatch_once(&once, ^{
+            protectJS = CHCanvasProtectJS();
+        });
 
-    if (protectJS) {
-        WKUserScript *chameleonScript = [[WKUserScript alloc] initWithSource:protectJS
-                                                               injectionTime:WKUserScriptInjectionTimeAtDocumentStart
-                                                            forMainFrameOnly:NO];
-        %orig(chameleonScript);
+        if (protectJS) {
+            WKUserScript *chameleonScript = [[WKUserScript alloc] initWithSource:protectJS
+                                                                   injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                                                                forMainFrameOnly:NO];
+            %orig(chameleonScript);
+        }
     }
 }
 

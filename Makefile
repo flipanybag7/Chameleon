@@ -20,3 +20,11 @@ Chameleon_FRAMEWORKS = UIKit Foundation CoreGraphics Security AdSupport WebKit C
 Chameleon_LIBRARIES = substrate
 
 include $(THEOS_MAKE_PATH)/tweak.mk
+
+BUNDLE_NAME = chameleonprefs
+chameleonprefs_FILES = CHPRootListController.m
+chameleonprefs_INSTALL_PATH = /Library/PreferenceBundles
+chameleonprefs_CFLAGS = -fobjc-arc
+chameleonprefs_FRAMEWORKS = UIKit Foundation Preferences
+
+include $(THEOS_MAKE_PATH)/bundle.mk

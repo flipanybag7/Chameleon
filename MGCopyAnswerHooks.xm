@@ -21,8 +21,12 @@ static CFTypeRef hooked_MGCopyAnswer(CFStringRef key);
 }
 
 static CFTypeRef hooked_MGCopyAnswer(CFStringRef key) {
-    if (!key || !orig_MGCopyAnswer) {
+    if (!orig_MGCopyAnswer || !key) {
         return orig_MGCopyAnswer ? orig_MGCopyAnswer(key) : NULL;
+    }
+
+    if (![CHIdentityEngine isHookEnabled:@"SpoofMGCopyAnswer"]) {
+        return orig_MGCopyAnswer(key);
     }
 
     NSString *keyStr = (__bridge NSString *)key;

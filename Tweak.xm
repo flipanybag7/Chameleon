@@ -8,6 +8,18 @@ static void hooked_UIApplication(id self, SEL _cmd);
 
 %ctor {
     @autoreleasepool {
+        NSDictionary *defaultPrefs = @{
+            @"Enabled": @YES,
+            @"SpoofUIDevice": @YES,
+            @"SpoofMGCopyAnswer": @YES,
+            @"SpoofASIdentifier": @YES,
+            @"SpoofCanvas": @YES,
+            @"SpoofSysctl": @YES,
+            @"SpoofIOKit": @YES,
+            @"SpoofNetwork": @YES,
+        };
+        [[[NSUserDefaults alloc] initWithSuiteName:@"com.chameleon.prefs"] registerDefaults:defaultPrefs];
+
         [CHIdentityEngine sharedEngine];
 
         MSHookMessageEx(

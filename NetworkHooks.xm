@@ -5,6 +5,7 @@
 %hook CTTelephonyNetworkInfo
 
 - (CTCarrier *)subscriberCellularProvider {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofNetwork"]) return %orig;
     CHDeviceIdentity *identity = [[CHIdentityEngine sharedEngine] currentIdentity];
     if (!identity) return %orig;
 
@@ -19,10 +20,12 @@
 }
 
 - (NSString *)currentRadioAccessTechnology {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofNetwork"]) return %orig;
     return @"CTRadioAccessTechnologyLTE";
 }
 
 - (NSDictionary *)serviceSubscriberCellularProviders {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofNetwork"]) return %orig;
     CHDeviceIdentity *identity = [[CHIdentityEngine sharedEngine] currentIdentity];
     if (!identity) return %orig;
 
@@ -41,18 +44,22 @@
 %hook CTCarrier
 
 - (NSString *)carrierName {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofNetwork"]) return %orig;
     return @"Chameleon Mobile";
 }
 
 - (NSString *)mobileCountryCode {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofNetwork"]) return %orig;
     return @"310";
 }
 
 - (NSString *)mobileNetworkCode {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofNetwork"]) return %orig;
     return @"260";
 }
 
 - (NSString *)isoCountryCode {
+    if (![CHIdentityEngine isHookEnabled:@"SpoofNetwork"]) return %orig;
     return @"US";
 }
 
