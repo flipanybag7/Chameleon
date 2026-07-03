@@ -1,3 +1,4 @@
+#import "CHIdentityEngine.h"
 #include <Preferences/PSListController.h>
 #include <Preferences/PSSpecifier.h>
 
