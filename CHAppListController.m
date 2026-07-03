@@ -2,10 +2,8 @@
 #import <Preferences/PSSpecifier.h>
 #import <objc/runtime.h>
 
-@interface LSApplicationProxy : NSObject
-- (NSData *)iconDataForVariant:(int)variant;
-- (NSString *)applicationIdentifier;
-- (NSString *)localizedName;
+@interface UIImage (ChameleonIcon)
++ (id)_applicationIconImageForBundleIdentifier:(id)arg1 format:(int)arg2 scale:(CGFloat)arg3;
 @end
 
 @interface CHAppListController : PSListController
@@ -19,24 +17,21 @@
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Installed Apps"]];
 
         NSMutableArray *appList = [NSMutableArray array];
-        NSMutableDictionary *proxyMap = [NSMutableDictionary dictionary];
-
         Class LSApp = objc_getClass("LSApplicationWorkspace");
         if (LSApp) {
             id workspace = [LSApp performSelector:@selector(defaultWorkspace)];
             NSArray *all = [workspace performSelector:@selector(allInstalledApplications)];
             for (id proxy in all) {
-                NSString *bundleID = [proxy applicationIdentifier];
-                NSString *name = [proxy localizedName] ?: bundleID;
+                NSString *bundleID = [proxy performSelector:@selector(applicationIdentifier)];
+                NSString *name = [proxy performSelector:@selector(localizedName)] ?: bundleID;
                 if (bundleID && name && ![bundleID hasPrefix:@"com.apple."] && ![bundleID hasPrefix:@"com.chameleon."]) {
                     [appList addObject:@{@"name": name, @"id": bundleID}];
-                    proxyMap[bundleID] = proxy;
                 }
             }
         }
 
         [appList sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
-            return [a[@"name"] compare:b[@"name"]];
+            return [a[@"name"] localizedCompare:b[@"name"]];
         }];
 
         for (NSDictionary *app in appList) {
@@ -47,8 +42,8 @@
             [spec setProperty:app[@"id"] forKey:@"bundleID"];
             [spec setProperty:@YES forKey:@"isController"];
 
-            id proxy = proxyMap[app[@"id"]];
-            UIImage *icon = [UIImage imageWithData:[proxy iconDataForVariant:2]];
+            UIImage *icon = [UIImage _applicationIconImageForBundleIdentifier:app[@"id"]
+                              format:2 scale:[UIScreen mainScreen].scale];
             if (icon) [spec setProperty:icon forKey:@"iconImage"];
 
             [specs addObject:spec];

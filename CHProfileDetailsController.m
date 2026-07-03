@@ -4,78 +4,85 @@
 #import "CHIdentityEngine.h"
 
 @interface CHProfileDetailsController : PSListController
+@property (nonatomic, copy) NSString *bundleID;
+@property (nonatomic, copy) NSString *uuid;
 @end
 
 @implementation CHProfileDetailsController
 
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.bundleID = [[self specifier] propertyForKey:@"bundleID"];
+    self.uuid = [[self specifier] propertyForKey:@"uuid"];
+}
+
 - (NSArray *)specifiers {
     if (!_specifiers) {
-        NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
-        NSString *uuid = [[self specifier] propertyForKey:@"uuid"];
-        NSString *profileName = [[self specifier] propertyForKey:@"profileName"];
-        BOOL isActive = [[[self specifier] propertyForKey:@"isActive"] boolValue];
+        NSString *bundleID = self.bundleID ?: [[self specifier] propertyForKey:@"bundleID"];
+        NSString *uuid = self.uuid ?: [[self specifier] propertyForKey:@"uuid"];
+
+        if (!bundleID) bundleID = @"com.unknown";
+        if (!uuid) uuid = @"default";
 
         CHDeviceIdentity *ident = [[CHIdentityEngine sharedEngine] identityForBundleID:bundleID containerUUID:uuid];
+        NSString *profileName = [[self specifier] propertyForKey:@"profileName"] ?: uuid;
+        BOOL isActive = [[[self specifier] propertyForKey:@"isActive"] boolValue];
 
         NSMutableArray *specs = [NSMutableArray array];
-
         [specs addObject:[PSSpecifier groupSpecifierWithName:profileName]];
 
         if (!isActive) {
-            PSSpecifier *setActiveSpec = [PSSpecifier preferenceSpecifierNamed:@"Set as Active"
+            PSSpecifier *activateSpec = [PSSpecifier preferenceSpecifierNamed:@"Set as Active"
                 target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:nil];
-            [setActiveSpec setTarget:self];
-            [setActiveSpec setButtonAction:@selector(setActive)];
-            [setActiveSpec setProperty:bundleID forKey:@"bundleID"];
-            [setActiveSpec setProperty:uuid forKey:@"uuid"];
-            [specs addObject:setActiveSpec];
+            [activateSpec setTarget:self];
+            [activateSpec setButtonAction:@selector(setActive)];
+            [activateSpec setProperty:bundleID forKey:@"bundleID"];
+            [activateSpec setProperty:uuid forKey:@"uuid"];
+            [specs addObject:activateSpec];
         }
 
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Spoofed Identifiers"]];
 
-        NSArray *items = @[
-            @{@"key": @"identifierForVendor", @"label": @"Identifier for Vendor (IDFV)"},
-            @{@"key": @"advertisingIdentifier", @"label": @"Advertising ID (IDFA)"},
-            @{@"key": @"deviceName", @"label": @"Device Name"},
-            @{@"key": @"deviceModel", @"label": @"Device Model"},
-            @{@"key": @"systemVersion", @"label": @"System Version"},
-            @{@"key": @"productType", @"label": @"Product Type"},
-            @{@"key": @"serialNumber", @"label": @"Serial Number"},
-            @{@"key": @"uniqueDeviceID", @"label": @"UDID"},
-            @{@"key": @"wifiAddress", @"label": @"WiFi MAC"},
-            @{@"key": @"bluetoothAddress", @"label": @"Bluetooth MAC"},
-            @{@"key": @"boardID", @"label": @"Board ID"},
-            @{@"key": @"chipID", @"label": @"Chip ID"},
-            @{@"key": @"IMEI", @"label": @"IMEI"},
-            @{@"key": @"ICCID", @"label": @"ICCID"},
-            @{@"key": @"basebandSerial", @"label": @"Baseband Serial"},
-        ];
-
-        for (NSDictionary *item in items) {
-            NSString *value = [ident valueForKey:item[@"key"]] ?: @"—";
-            PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:item[@"label"]
+        void (^addItem)(NSString *, NSString *) = ^(NSString *label, NSString *valueKey) {
+            NSString *val = [ident valueForKey:valueKey] ?: @"—";
+            if ([val isKindOfClass:[NSNull class]] || [val length] == 0) val = @"—";
+            PSSpecifier *s = [PSSpecifier preferenceSpecifierNamed:label
                 target:self set:NULL get:NULL detail:nil cell:PSStaticTextCell edit:nil];
-            [spec setProperty:value forKey:@"value"];
-            [specs addObject:spec];
-        }
+            [s setProperty:val forKey:@"value"];
+            [specs addObject:s];
+        };
+
+        addItem(@"Identifier for Vendor (IDFV)", @"identifierForVendor");
+        addItem(@"Advertising ID (IDFA)", @"advertisingIdentifier");
+        addItem(@"Device Name", @"deviceName");
+        addItem(@"Device Model", @"deviceModel");
+        addItem(@"System Version", @"systemVersion");
+        addItem(@"Product Type", @"productType");
+        addItem(@"Serial Number", @"serialNumber");
+        addItem(@"UDID", @"uniqueDeviceID");
+        addItem(@"WiFi MAC", @"wifiAddress");
+        addItem(@"Bluetooth MAC", @"bluetoothAddress");
+        addItem(@"Board ID", @"boardID");
+        addItem(@"Chip ID", @"chipID");
+        addItem(@"IMEI", @"IMEI");
+        addItem(@"ICCID", @"ICCID");
+        addItem(@"Baseband Serial", @"basebandSerial");
 
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Actions"]];
+
+        PSSpecifier *randomizeSpec = [PSSpecifier preferenceSpecifierNamed:@"Randomize Identity"
+            target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:nil];
+        [randomizeSpec setTarget:self];
+        [randomizeSpec setButtonAction:@selector(randomize)];
+        [specs addObject:randomizeSpec];
+
         PSSpecifier *renameSpec = [PSSpecifier preferenceSpecifierNamed:@"Rename Profile"
             target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:nil];
         [renameSpec setTarget:self];
         [renameSpec setButtonAction:@selector(renameProfile)];
         [renameSpec setProperty:bundleID forKey:@"bundleID"];
         [renameSpec setProperty:uuid forKey:@"uuid"];
-        [renameSpec setProperty:profileName forKey:@"profileName"];
         [specs addObject:renameSpec];
-
-        PSSpecifier *resetSpec = [PSSpecifier preferenceSpecifierNamed:@"Reset Identity"
-            target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:nil];
-        [resetSpec setTarget:self];
-        [resetSpec setButtonAction:@selector(resetIdentity)];
-        [resetSpec setProperty:bundleID forKey:@"bundleID"];
-        [resetSpec setProperty:uuid forKey:@"uuid"];
-        [specs addObject:resetSpec];
 
         if (![uuid isEqualToString:@"default"]) {
             PSSpecifier *deleteSpec = [PSSpecifier preferenceSpecifierNamed:@"Delete Profile"
@@ -84,7 +91,6 @@
             [deleteSpec setButtonAction:@selector(deleteProfile)];
             [deleteSpec setProperty:bundleID forKey:@"bundleID"];
             [deleteSpec setProperty:uuid forKey:@"uuid"];
-            [deleteSpec setProperty:@YES forKey:@"destructive"];
             [specs addObject:deleteSpec];
         }
 
@@ -94,46 +100,46 @@
 }
 
 - (void)setActive {
-    NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
-    NSString *uuid = [[self specifier] propertyForKey:@"uuid"];
-    [[CHContainerManager sharedManager] setActiveContainer:uuid forBundleID:bundleID];
+    NSString *bID = [[self specifier] propertyForKey:@"bundleID"] ?: self.bundleID;
+    NSString *u = [[self specifier] propertyForKey:@"uuid"] ?: self.uuid;
+    [[CHContainerManager sharedManager] setActiveContainer:u forBundleID:bID];
     [self.navigationController popViewControllerAnimated:YES];
 }
 
+- (void)randomize {
+    NSString *bID = [[self specifier] propertyForKey:@"bundleID"] ?: self.bundleID;
+    NSString *u = [[self specifier] propertyForKey:@"uuid"] ?: self.uuid;
+    [[CHIdentityEngine sharedEngine] resetIdentityForBundleID:bID containerUUID:u];
+    _specifiers = nil;
+    [self reloadSpecifiers];
+}
+
 - (void)renameProfile {
-    NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
-    NSString *uuid = [[self specifier] propertyForKey:@"uuid"];
-    NSString *currentName = [[self specifier] propertyForKey:@"profileName"];
+    NSString *bID = [[self specifier] propertyForKey:@"bundleID"] ?: self.bundleID;
+    NSString *u = [[self specifier] propertyForKey:@"uuid"] ?: self.uuid;
+    NSString *currentName = [[self specifier] propertyForKey:@"profileName"] ?: u;
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Rename"
         message:nil preferredStyle:UIAlertControllerStyleAlert];
     [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.text = currentName; }];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Save" style:UIAlertActionStyleDefault
         handler:^(UIAlertAction *a) {
-            [[CHContainerManager sharedManager] renameContainerForBundleID:bundleID
-                uuid:uuid name:alert.textFields.firstObject.text ?: currentName];
+            [[CHContainerManager sharedManager] renameContainerForBundleID:bID
+                uuid:u name:alert.textFields.firstObject.text ?: currentName];
             [self.navigationController popViewControllerAnimated:YES];
         }]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void)resetIdentity {
-    NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
-    NSString *uuid = [[self specifier] propertyForKey:@"uuid"];
-    [[CHIdentityEngine sharedEngine] resetIdentityForBundleID:bundleID containerUUID:uuid];
-    _specifiers = nil;
-    [self reloadSpecifiers];
-}
-
 - (void)deleteProfile {
-    NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
-    NSString *uuid = [[self specifier] propertyForKey:@"uuid"];
+    NSString *bID = [[self specifier] propertyForKey:@"bundleID"] ?: self.bundleID;
+    NSString *u = [[self specifier] propertyForKey:@"uuid"] ?: self.uuid;
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Delete Profile?"
         message:nil preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Delete" style:UIAlertActionStyleDestructive
         handler:^(UIAlertAction *a) {
-            [[CHContainerManager sharedManager] deleteContainerForBundleID:bundleID uuid:uuid];
+            [[CHContainerManager sharedManager] deleteContainerForBundleID:bID uuid:u];
             [self.navigationController popViewControllerAnimated:YES];
         }]];
     [self presentViewController:alert animated:YES completion:nil];
