@@ -10,10 +10,15 @@
 
 @implementation CHProfileDetailsController
 
+- (void)setSpecifier:(PSSpecifier *)spec {
+    [super setSpecifier:spec];
+    self.bundleID = [spec propertyForKey:@"bundleID"];
+    self.uuid = [spec propertyForKey:@"uuid"];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.bundleID = [[self specifier] propertyForKey:@"bundleID"];
-    self.uuid = [[self specifier] propertyForKey:@"uuid"];
+    [self reloadSpecifiers];
 }
 
 - (NSArray *)specifiers {
@@ -47,7 +52,7 @@
             NSString *val = [ident valueForKey:valueKey] ?: @"—";
             if ([val isKindOfClass:[NSNull class]] || [val length] == 0) val = @"—";
             PSSpecifier *s = [PSSpecifier preferenceSpecifierNamed:label
-                target:self set:NULL get:NULL detail:nil cell:PSStaticTextCell edit:nil];
+                target:self set:NULL get:NULL detail:nil cell:6 edit:nil];
             [s setProperty:val forKey:@"value"];
             [specs addObject:s];
         };
