@@ -8,6 +8,8 @@
         <string>chameleonprefs</string>
         <key>cell</key>
         <string>PSLinkCell</string>
+        <key>detail</key>
+        <string>CHPRootListController</string>
         <key>isController</key>
         <true/>
         <key>label</key>
