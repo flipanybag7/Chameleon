@@ -50,6 +50,7 @@ jobs:
       - name: Build package
         run: |
           cd $GITHUB_WORKSPACE
+          rm -rf .theos
           make clean
           make package FINALPACKAGE=1
 
