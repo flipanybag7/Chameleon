@@ -25,6 +25,7 @@ BUNDLE_NAME = chameleonprefs
 chameleonprefs_FILES = CHPRootListController.m CHIdentityEngine.m
 chameleonprefs_INSTALL_PATH = /Library/PreferenceBundles
 chameleonprefs_CFLAGS = -fobjc-arc -I.
+chameleonprefs_RESOURCES = specifiers.plist
 chameleonprefs_FRAMEWORKS = UIKit Foundation CoreGraphics Security
 chameleonprefs_PRIVATE_FRAMEWORKS = Preferences
 
