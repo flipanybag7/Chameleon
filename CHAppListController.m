@@ -12,25 +12,30 @@
         NSMutableArray *specs = [NSMutableArray array];
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Installed Apps"]];
 
-        NSMutableDictionary *apps = [NSMutableDictionary dictionary];
-        NSArray *dirs = @[@"/var/jb/Applications", @"/var/containers/Bundle/Application"];
-        for (NSString *dir in dirs) {
-            for (NSString *item in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:dir error:nil] ?: @[]) {
-                NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", dir, item];
-                NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:infoPath];
-                NSString *bundleID = info[@"CFBundleIdentifier"];
-                NSString *name = info[@"CFBundleDisplayName"] ?: info[@"CFBundleName"] ?: item;
-                if (bundleID && !apps[bundleID]) apps[bundleID] = name;
+        NSMutableArray *appList = [NSMutableArray array];
+        Class LSApp = objc_getClass("LSApplicationWorkspace");
+        if (LSApp) {
+            id workspace = [LSApp performSelector:@selector(defaultWorkspace)];
+            NSArray *all = [workspace performSelector:@selector(allInstalledApplications)];
+            for (id proxy in all) {
+                NSString *bundleID = [proxy valueForKey:@"applicationIdentifier"];
+                NSString *name = [proxy valueForKey:@"localizedName"] ?: bundleID;
+                if (bundleID && name && ![bundleID hasPrefix:@"com.apple."]) {
+                    [appList addObject:@{@"name": name, @"id": bundleID}];
+                }
             }
         }
 
-        NSArray *sorted = [apps.allKeys sortedArrayUsingSelector:@selector(compare:)];
-        for (NSString *bundleID in sorted) {
-            PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:apps[bundleID]
+        [appList sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
+            return [a[@"name"] compare:b[@"name"]];
+        }];
+
+        for (NSDictionary *app in appList) {
+            PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:app[@"name"]
                 target:self set:NULL get:NULL
                 detail:objc_getClass("CHProfileListController")
                 cell:PSLinkCell edit:nil];
-            [spec setProperty:bundleID forKey:@"bundleID"];
+            [spec setProperty:app[@"id"] forKey:@"bundleID"];
             [spec setProperty:@YES forKey:@"isController"];
             [specs addObject:spec];
         }

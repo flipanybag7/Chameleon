@@ -4,7 +4,6 @@
 #import "CHIdentityEngine.h"
 
 @interface CHProfileListController : PSListController
-@property (nonatomic, copy) NSString *bundleID;
 @end
 
 @implementation CHProfileListController
@@ -12,10 +11,8 @@
 - (NSArray *)specifiers {
     if (!_specifiers) {
         NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
-
         NSMutableArray *specs = [NSMutableArray array];
-        [specs addObject:[PSSpecifier groupSpecifierWithName:
-                          [NSString stringWithFormat:@"Profiles for %@", bundleID]]];
+        [specs addObject:[PSSpecifier groupSpecifierWithName:[NSString stringWithFormat:@"Profiles for %@", bundleID]]];
 
         CHContainerManager *cm = [CHContainerManager sharedManager];
         NSArray *uuids = [cm containerUUIDsForBundleID:bundleID];
@@ -26,76 +23,103 @@
             NSString *active = [cm activeContainerForBundleID:bundleID];
             BOOL isActive = [uuid isEqualToString:active];
 
-            PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:
-                isActive ? [NSString stringWithFormat:@"%@ (Active)", name] : name
-                target:self set:NULL get:NULL detail:nil cell:PSLinkCell edit:nil];
+            NSString *label = isActive ? [NSString stringWithFormat:@"%@ (Active)", name] : name;
+
+            PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:label
+                target:self set:NULL get:NULL
+                detail:nil cell:PSLinkCell edit:nil];
             [spec setProperty:bundleID forKey:@"bundleID"];
             [spec setProperty:uuid forKey:@"uuid"];
-            [spec setProperty:isActive ? @"switch" : @"select" forKey:@"action"];
+            [spec setProperty:@(isActive) forKey:@"isActive"];
+            [spec setProperty:name forKey:@"profileName"];
 
             if (!isActive) {
-                [spec setProperty:NSStringFromSelector(@selector(activateProfile:)) forKey:@"lazyAltAction"];
+                [spec setTarget:self];
+                [spec setButtonAction:@selector(profileTapped:)];
             }
             [specs addObject:spec];
-
-            CHDeviceIdentity *ident = [[CHIdentityEngine sharedEngine] identityForBundleID:bundleID
-                                                                              containerUUID:uuid];
-            if (ident) {
-                [specs addObject:[self staticSpec:@"IDFV" value:ident.identifierForVendor]];
-                [specs addObject:[self staticSpec:@"IDFA" value:ident.advertisingIdentifier]];
-            }
         }
 
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Actions"]];
-        [specs addObject:[self buttonSpec:@"Create New Profile" action:@selector(createProfile)]];
+        PSSpecifier *btnSpec = [PSSpecifier preferenceSpecifierNamed:@"Create New Profile"
+            target:self set:NULL get:NULL detail:nil cell:PSButtonCell edit:nil];
+        [btnSpec setTarget:self];
+        [btnSpec setButtonAction:@selector(createProfile)];
+        [specs addObject:btnSpec];
 
         _specifiers = specs;
     }
     return _specifiers;
 }
 
-- (PSSpecifier *)staticSpec:(NSString *)label value:(NSString *)value {
-    PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:label target:self set:NULL get:NULL
-                                                       detail:nil cell:PSStaticTextCell edit:nil];
-    [spec setProperty:value forKey:@"value"];
-    return spec;
-}
-
-- (PSSpecifier *)buttonSpec:(NSString *)label action:(SEL)action {
-    PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:label target:self set:NULL get:NULL
-                                                       detail:nil cell:PSButtonCell edit:nil];
-    [spec setTarget:self];
-    [spec setButtonAction:action];
-    return spec;
-}
-
-- (void)activateProfile:(PSSpecifier *)spec {
+- (void)profileTapped:(PSSpecifier *)spec {
     NSString *bundleID = [spec propertyForKey:@"bundleID"];
     NSString *uuid = [spec propertyForKey:@"uuid"];
-    if (bundleID && uuid) {
-        [[CHContainerManager sharedManager] setActiveContainer:uuid forBundleID:bundleID];
-        _specifiers = nil;
-        [self reloadSpecifiers];
+    NSString *name = [spec propertyForKey:@"profileName"];
+    if (!bundleID || !uuid) return;
+
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:name
+        message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+
+    [alert addAction:[UIAlertAction actionWithTitle:@"Set as Active" style:UIAlertActionStyleDefault
+        handler:^(UIAlertAction *a) {
+            [[CHContainerManager sharedManager] setActiveContainer:uuid forBundleID:bundleID];
+            _specifiers = nil;
+            [self reloadSpecifiers];
+        }]];
+
+    [alert addAction:[UIAlertAction actionWithTitle:@"Rename" style:UIAlertActionStyleDefault
+        handler:^(UIAlertAction *a) {
+            [self renameProfile:bundleID uuid:uuid currentName:name];
+        }]];
+
+    [alert addAction:[UIAlertAction actionWithTitle:@"Delete" style:UIAlertActionStyleDestructive
+        handler:^(UIAlertAction *a) {
+            [[CHContainerManager sharedManager] deleteContainerForBundleID:bundleID uuid:uuid];
+            _specifiers = nil;
+            [self reloadSpecifiers];
+        }]];
+
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+
+    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+        alert.popoverPresentationController.sourceView = self.view;
+        alert.popoverPresentationController.sourceRect = CGRectMake(CGRectGetMidX(self.view.bounds), 0, 0, 0);
     }
+
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)renameProfile:(NSString *)bundleID uuid:(NSString *)uuid currentName:(NSString *)currentName {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Rename Profile"
+        message:nil preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.text = currentName; }];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Save" style:UIAlertActionStyleDefault
+        handler:^(UIAlertAction *a) {
+            NSString *newName = alert.textFields.firstObject.text ?: currentName;
+            [[CHContainerManager sharedManager] renameContainerForBundleID:bundleID uuid:uuid name:newName];
+            _specifiers = nil;
+            [self reloadSpecifiers];
+        }]];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (void)createProfile {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"New Profile"
-        message:@"Enter a name for this profile" preferredStyle:UIAlertControllerStyleAlert];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) {
-        tf.placeholder = @"Profile name";
-    }];
+        message:@"Enter a name" preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.placeholder = @"Profile name"; }];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Create" style:UIAlertActionStyleDefault
-        handler:^(UIAlertAction *action) {
-        NSString *name = alert.textFields.firstObject.text ?: @"New Profile";
-        NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
-        if (bundleID) {
-            [[CHContainerManager sharedManager] createContainerForBundleID:bundleID name:name];
-            _specifiers = nil;
-            [self reloadSpecifiers];
-        }
-    }]];
+        handler:^(UIAlertAction *a) {
+            NSString *name = alert.textFields.firstObject.text ?: @"New Profile";
+            NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
+            if (bundleID) {
+                [[CHContainerManager sharedManager] createContainerForBundleID:bundleID name:name];
+                _specifiers = nil;
+                [self reloadSpecifiers];
+            }
+        }]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
