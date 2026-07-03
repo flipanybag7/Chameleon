@@ -37,6 +37,12 @@ jobs:
             tar -xJf /tmp/sdk.tar.xz -C /opt/theos/sdks
           fi
 
+      - name: Setup ldid
+        run: |
+          echo "/opt/theos/vendor/lib/bin" >> $GITHUB_PATH
+          # Also install via brew as fallback for ARM64 runners
+          which ldid || brew install ldid 2>/dev/null || true
+
       - name: Build package
         run: |
           cd $GITHUB_WORKSPACE
