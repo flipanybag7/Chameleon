@@ -5,7 +5,7 @@
     <key>entry</key>
     <dict>
         <key>bundle</key>
-        <string>ChameleonPrefs</string>
+        <string>chameleonprefs</string>
         <key>cell</key>
         <string>PSLinkCell</string>
         <key>isController</key>
