@@ -6,6 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Chameleon
 Chameleon_FILES = Tweak.xm \
+                  SettingsHook.xm \
                   UIDeviceHooks.xm \
                   MGCopyAnswerHooks.xm \
                   ASIdentifierHooks.xm \
