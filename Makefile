@@ -26,7 +26,7 @@ chameleonprefs_FILES = CHPRootListController.m CHIdentityEngine.m
 chameleonprefs_INSTALL_PATH = /Library/PreferenceBundles
 chameleonprefs_CFLAGS = -fobjc-arc -I.
 chameleonprefs_RESOURCES = specifiers.plist
+chameleonprefs_LDFLAGS = -undefined dynamic_lookup
 chameleonprefs_FRAMEWORKS = UIKit Foundation CoreGraphics Security
-chameleonprefs_PRIVATE_FRAMEWORKS = Preferences
 
 include $(THEOS_MAKE_PATH)/bundle.mk
