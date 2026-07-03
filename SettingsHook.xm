@@ -13,13 +13,7 @@ static NSArray *hooked_specifiers(id self, SEL _cmd) {
     NSArray *specs = orig_specifiers(self, _cmd);
     NSString *bundleID = [[NSBundle mainBundle] bundleIdentifier];
     if (![bundleID isEqualToString:@"com.apple.Preferences"]) return specs;
-    if (specs.count < 2) return specs;
-
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        NSString *path = @"/var/jb/Library/PreferenceBundles/chameleonprefs.bundle";
-        [[NSBundle bundleWithPath:path] load];
-    });
+    if (![NSStringFromClass([self class]) isEqualToString:@"PSSettingsController"]) return specs;
 
     Class vc = objc_getClass("CHPRootListController");
     if (!vc) return specs;

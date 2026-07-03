@@ -17,6 +17,7 @@ Chameleon_FILES = Tweak.xm \
                   CHIdentityEngine.m
 
 Chameleon_CFLAGS = -fobjc-arc -I.
+Chameleon_LDFLAGS = -undefined dynamic_lookup
 Chameleon_FRAMEWORKS = UIKit Foundation CoreGraphics Security AdSupport WebKit CoreTelephony
 Chameleon_LIBRARIES = substrate
 
