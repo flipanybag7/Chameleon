@@ -43,6 +43,10 @@ jobs:
           # Also install via brew as fallback for ARM64 runners
           which ldid || brew install ldid 2>/dev/null || true
 
+      - name: Fix permissions
+        run: |
+          chmod 755 $GITHUB_WORKSPACE/layout/DEBIAN/postinst
+
       - name: Build package
         run: |
           cd $GITHUB_WORKSPACE
