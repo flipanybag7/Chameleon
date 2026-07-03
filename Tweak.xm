@@ -93,12 +93,30 @@ static void showSettingsPanel(void) {
                                               style:UIAlertActionStyleCancel
                                             handler:nil]];
 
-    UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+    UIViewController *rootVC = nil;
+    if (@available(iOS 13, *)) {
+        NSSet<UIScene *> *scenes = [UIApplication sharedApplication].connectedScenes;
+        for (UIScene *scene in scenes) {
+            if (scene.activationState == UISceneActivationStateForegroundActive) {
+                UIWindowScene *ws = (UIWindowScene *)scene;
+                for (UIWindow *win in ws.windows) {
+                    if (win.isKeyWindow) { rootVC = win.rootViewController; break; }
+                }
+            }
+            if (rootVC) break;
+        }
+    }
+    if (!rootVC) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+#pragma clang diagnostic pop
+    }
     while (rootVC.presentedViewController) {
         rootVC = rootVC.presentedViewController;
     }
 
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
         alert.popoverPresentationController.sourceView = rootVC.view;
         alert.popoverPresentationController.sourceRect = CGRectMake(CGRectGetMidX(rootVC.view.bounds), CGRectGetMidY(rootVC.view.bounds), 0, 0);
         alert.popoverPresentationController.permittedArrowDirections = 0;
