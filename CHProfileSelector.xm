@@ -1,4 +1,6 @@
 #import "CHContainerManager.h"
+#import "CHIdentityEngine.h"
+#import <UIKit/UIKit.h>
 #import <substrate.h>
 #import <objc/runtime.h>
 
@@ -45,7 +47,21 @@ static void showProfilePicker(NSString *bundleID) {
 
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
 
-    UIViewController *root = [UIApplication sharedApplication].keyWindow.rootViewController;
+    UIViewController *root = nil;
+    if (@available(iOS 13, *)) {
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if (scene.activationState == UISceneActivationStateForegroundActive) {
+                root = [(UIWindowScene *)scene windows].firstObject.rootViewController;
+                break;
+            }
+        }
+    }
+    if (!root) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        root = [UIApplication sharedApplication].keyWindow.rootViewController;
+#pragma clang diagnostic pop
+    }
     while (root.presentedViewController) root = root.presentedViewController;
 
     if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
