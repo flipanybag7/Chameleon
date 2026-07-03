@@ -27,16 +27,13 @@
 
             PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:label
                 target:self set:NULL get:NULL
-                detail:nil cell:PSLinkCell edit:nil];
+                detail:objc_getClass("CHProfileDetailsController")
+                cell:PSLinkCell edit:nil];
             [spec setProperty:bundleID forKey:@"bundleID"];
             [spec setProperty:uuid forKey:@"uuid"];
             [spec setProperty:@(isActive) forKey:@"isActive"];
             [spec setProperty:name forKey:@"profileName"];
-
-            if (!isActive) {
-                [spec setTarget:self];
-                [spec setButtonAction:@selector(profileTapped:)];
-            }
+            [spec setProperty:@YES forKey:@"isController"];
             [specs addObject:spec];
         }
 
@@ -50,59 +47,6 @@
         _specifiers = specs;
     }
     return _specifiers;
-}
-
-- (void)profileTapped:(PSSpecifier *)spec {
-    NSString *bundleID = [spec propertyForKey:@"bundleID"];
-    NSString *uuid = [spec propertyForKey:@"uuid"];
-    NSString *name = [spec propertyForKey:@"profileName"];
-    if (!bundleID || !uuid) return;
-
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:name
-        message:nil preferredStyle:UIAlertControllerStyleActionSheet];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Set as Active" style:UIAlertActionStyleDefault
-        handler:^(UIAlertAction *a) {
-            [[CHContainerManager sharedManager] setActiveContainer:uuid forBundleID:bundleID];
-            _specifiers = nil;
-            [self reloadSpecifiers];
-        }]];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Rename" style:UIAlertActionStyleDefault
-        handler:^(UIAlertAction *a) {
-            [self renameProfile:bundleID uuid:uuid currentName:name];
-        }]];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Delete" style:UIAlertActionStyleDestructive
-        handler:^(UIAlertAction *a) {
-            [[CHContainerManager sharedManager] deleteContainerForBundleID:bundleID uuid:uuid];
-            _specifiers = nil;
-            [self reloadSpecifiers];
-        }]];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
-
-    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
-        alert.popoverPresentationController.sourceView = self.view;
-        alert.popoverPresentationController.sourceRect = CGRectMake(CGRectGetMidX(self.view.bounds), 0, 0, 0);
-    }
-
-    [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)renameProfile:(NSString *)bundleID uuid:(NSString *)uuid currentName:(NSString *)currentName {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Rename Profile"
-        message:nil preferredStyle:UIAlertControllerStyleAlert];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *tf) { tf.text = currentName; }];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
-    [alert addAction:[UIAlertAction actionWithTitle:@"Save" style:UIAlertActionStyleDefault
-        handler:^(UIAlertAction *a) {
-            NSString *newName = alert.textFields.firstObject.text ?: currentName;
-            [[CHContainerManager sharedManager] renameContainerForBundleID:bundleID uuid:uuid name:newName];
-            _specifiers = nil;
-            [self reloadSpecifiers];
-        }]];
-    [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (void)createProfile {

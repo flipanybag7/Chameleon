@@ -2,6 +2,12 @@
 #import <Preferences/PSSpecifier.h>
 #import <objc/runtime.h>
 
+@interface LSApplicationProxy : NSObject
+- (NSData *)iconDataForVariant:(int)variant;
+- (NSString *)applicationIdentifier;
+- (NSString *)localizedName;
+@end
+
 @interface CHAppListController : PSListController
 @end
 
@@ -13,15 +19,18 @@
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Installed Apps"]];
 
         NSMutableArray *appList = [NSMutableArray array];
+        NSMutableDictionary *proxyMap = [NSMutableDictionary dictionary];
+
         Class LSApp = objc_getClass("LSApplicationWorkspace");
         if (LSApp) {
             id workspace = [LSApp performSelector:@selector(defaultWorkspace)];
             NSArray *all = [workspace performSelector:@selector(allInstalledApplications)];
             for (id proxy in all) {
-                NSString *bundleID = [proxy valueForKey:@"applicationIdentifier"];
-                NSString *name = [proxy valueForKey:@"localizedName"] ?: bundleID;
-                if (bundleID && name && ![bundleID hasPrefix:@"com.apple."]) {
+                NSString *bundleID = [proxy applicationIdentifier];
+                NSString *name = [proxy localizedName] ?: bundleID;
+                if (bundleID && name && ![bundleID hasPrefix:@"com.apple."] && ![bundleID hasPrefix:@"com.chameleon."]) {
                     [appList addObject:@{@"name": name, @"id": bundleID}];
+                    proxyMap[bundleID] = proxy;
                 }
             }
         }
@@ -37,6 +46,11 @@
                 cell:PSLinkCell edit:nil];
             [spec setProperty:app[@"id"] forKey:@"bundleID"];
             [spec setProperty:@YES forKey:@"isController"];
+
+            id proxy = proxyMap[app[@"id"]];
+            UIImage *icon = [UIImage imageWithData:[proxy iconDataForVariant:2]];
+            if (icon) [spec setProperty:icon forKey:@"iconImage"];
+
             [specs addObject:spec];
         }
 

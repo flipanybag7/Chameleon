@@ -27,6 +27,7 @@ BUNDLE_NAME = chameleonprefs
 chameleonprefs_FILES = CHPRootListController.m \
                        CHAppListController.m \
                        CHProfileListController.m \
+                       CHProfileDetailsController.m \
                        CHContainerManager.m \
                        CHIdentityEngine.m
 
