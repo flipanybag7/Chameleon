@@ -13,7 +13,7 @@
         NSMutableArray *specs = [NSMutableArray array];
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Chameleon"]];
         [specs addObject:[PSSpecifier preferenceSpecifierNamed:@"Installed Apps"
-            target:self set:NULL get:NULL detail:[CHAppListController class]
+            target:self set:NULL get:NULL detail:objc_getClass("CHAppListController")
             cell:PSLinkCell edit:nil]];
 
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Spoofed APIs"]];
@@ -36,12 +36,12 @@
         }
 
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Profile Manager"]];
-        [specs addObject:[PSSpecifier preferenceSpecifierNamed:@"Show profile picker on launch"
+        PSSpecifier *pickerSpec = [PSSpecifier preferenceSpecifierNamed:@"Show profile picker on launch"
             target:self set:@selector(setPreferenceValue:specifier:)
-            get:@selector(readPreferenceValue:) detail:nil cell:PSSwitchCell edit:nil]];
-        [spec setProperty:@"ShowPicker" forKey:@"key"];
-        [spec setProperty:@YES forKey:@"default"];
-        [specs addObject:spec];
+            get:@selector(readPreferenceValue:) detail:nil cell:PSSwitchCell edit:nil];
+        [pickerSpec setProperty:@"ShowPicker" forKey:@"key"];
+        [pickerSpec setProperty:@YES forKey:@"default"];
+        [specs addObject:pickerSpec];
 
         _specifiers = specs;
     }
