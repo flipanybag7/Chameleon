@@ -18,6 +18,8 @@
     <string>1.0.0</string>
     <key>CFBundleName</key>
     <string>Chameleon</string>
+    <key>NSPrincipalClass</key>
+    <string>CHPRootListController</string>
     <key>NSHumanReadableCopyright</key>
     <string>Chameleon Team</string>
 </dict>
