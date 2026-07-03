@@ -62,8 +62,11 @@
 }
 
 - (PSSpecifier *)buttonSpec:(NSString *)label action:(SEL)action {
-    return [PSSpecifier preferenceSpecifierNamed:label target:self set:NULL get:NULL
-                                          detail:nil cell:PSButtonCell edit:nil];
+    PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:label target:self set:NULL get:NULL
+                                                       detail:nil cell:PSButtonCell edit:nil];
+    [spec setTarget:self];
+    [spec setButtonAction:action];
+    return spec;
 }
 
 - (void)activateProfile:(PSSpecifier *)spec {

@@ -13,13 +13,15 @@
         [specs addObject:[PSSpecifier groupSpecifierWithName:@"Installed Apps"]];
 
         NSMutableDictionary *apps = [NSMutableDictionary dictionary];
-        for (NSDictionary *dict in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:
-             @"/var/jb/Applications" error:nil] ?: @[]) {
-            NSString *infoPath = [NSString stringWithFormat:@"/var/jb/Applications/%@/Info.plist", dict];
-            NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:infoPath];
-            NSString *bundleID = info[@"CFBundleIdentifier"];
-            NSString *name = info[@"CFBundleDisplayName"] ?: info[@"CFBundleName"] ?: dict;
-            if (bundleID) apps[bundleID] = name;
+        NSArray *dirs = @[@"/var/jb/Applications", @"/var/containers/Bundle/Application"];
+        for (NSString *dir in dirs) {
+            for (NSString *item in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:dir error:nil] ?: @[]) {
+                NSString *infoPath = [NSString stringWithFormat:@"%@/%@/Info.plist", dir, item];
+                NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:infoPath];
+                NSString *bundleID = info[@"CFBundleIdentifier"];
+                NSString *name = info[@"CFBundleDisplayName"] ?: info[@"CFBundleName"] ?: item;
+                if (bundleID && !apps[bundleID]) apps[bundleID] = name;
+            }
         }
 
         NSArray *sorted = [apps.allKeys sortedArrayUsingSelector:@selector(compare:)];
