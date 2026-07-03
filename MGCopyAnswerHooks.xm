@@ -1,5 +1,6 @@
 #import "CHIdentityEngine.h"
 #import <MobileGestalt/MobileGestalt.h>
+#import <substrate.h>
 
 static CFTypeRef (*orig_MGCopyAnswer)(CFStringRef key);
 static CFTypeRef hooked_MGCopyAnswer(CFStringRef key);
@@ -50,9 +51,9 @@ static CFTypeRef hooked_MGCopyAnswer(CFStringRef key) {
             return CFDataCreateCopy(kCFAllocatorDefault, (__bridge CFDataRef)spoofedValue);
         }
         if ([spoofedValue isKindOfClass:[NSNumber class]]) {
-            CFTypeID typeID = CFNumberGetType((CFNumberRef)(__bridge CFTypeRef)spoofedValue);
+            CFNumberType numType = CFNumberGetType((CFNumberRef)(__bridge CFTypeRef)spoofedValue);
             double val = [spoofedValue doubleValue];
-            return CFNumberCreate(kCFAllocatorDefault, typeID, &val);
+            return CFNumberCreate(kCFAllocatorDefault, numType, &val);
         }
     }
 
