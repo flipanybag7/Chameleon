@@ -1,5 +1,6 @@
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
+#import "CHContainerManager.h"
 #import "CHIdentityEngine.h"
 
 @interface CHPRootListController : PSListController
@@ -9,35 +10,38 @@
 
 - (NSArray *)specifiers {
     if (!_specifiers) {
-        NSArray *toggles = @[
-            @{@"key": @"Enabled", @"label": @"Chameleon Enabled"},
-            @{@"key": @"SpoofUIDevice", @"label": @"Spoof UIDevice"},
-            @{@"key": @"SpoofMGCopyAnswer", @"label": @"Spoof MobileGestalt"},
-            @{@"key": @"SpoofASIdentifier", @"label": @"Spoof Advertising ID"},
-            @{@"key": @"SpoofCanvas", @"label": @"Spoof Canvas / WebGL"},
-            @{@"key": @"SpoofSysctl", @"label": @"Spoof Sysctl"},
-            @{@"key": @"SpoofIOKit", @"label": @"Spoof IOKit"},
-            @{@"key": @"SpoofNetwork", @"label": @"Spoof Carrier Info"},
-        ];
-
         NSMutableArray *specs = [NSMutableArray array];
-        [specs addObject:[PSSpecifier groupSpecifierWithName:@"Global Control"]];
-        [specs addObject:[PSSpecifier preferenceSpecifierNamed:@"Chameleon Enabled"
-            target:self set:@selector(setPreferenceValue:specifier:)
-            get:@selector(readPreferenceValue:)
-            detail:nil cell:PSSwitchCell edit:nil]];
+        [specs addObject:[PSSpecifier groupSpecifierWithName:@"Chameleon"]];
+        [specs addObject:[PSSpecifier preferenceSpecifierNamed:@"Installed Apps"
+            target:self set:NULL get:NULL detail:[CHAppListController class]
+            cell:PSLinkCell edit:nil]];
 
-        [specs addObject:[PSSpecifier groupSpecifierWithName:@"Hooked APIs"]];
+        [specs addObject:[PSSpecifier groupSpecifierWithName:@"Spoofed APIs"]];
+        NSArray *toggles = @[
+            @{@"key": @"SpoofUIDevice", @"label": @"UIDevice"},
+            @{@"key": @"SpoofMGCopyAnswer", @"label": @"MobileGestalt"},
+            @{@"key": @"SpoofASIdentifier", @"label": @"Advertising ID"},
+            @{@"key": @"SpoofCanvas", @"label": @"Canvas / WebGL"},
+            @{@"key": @"SpoofSysctl", @"label": @"Sysctl"},
+            @{@"key": @"SpoofIOKit", @"label": @"IOKit"},
+            @{@"key": @"SpoofNetwork", @"label": @"Carrier Info"},
+        ];
         for (NSDictionary *item in toggles) {
-            if ([item[@"key"] isEqualToString:@"Enabled"]) continue;
             PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:item[@"label"]
                 target:self set:@selector(setPreferenceValue:specifier:)
-                get:@selector(readPreferenceValue:)
-                detail:nil cell:PSSwitchCell edit:nil];
+                get:@selector(readPreferenceValue:) detail:nil cell:PSSwitchCell edit:nil];
             [spec setProperty:item[@"key"] forKey:@"key"];
             [spec setProperty:@YES forKey:@"default"];
             [specs addObject:spec];
         }
+
+        [specs addObject:[PSSpecifier groupSpecifierWithName:@"Profile Manager"]];
+        [specs addObject:[PSSpecifier preferenceSpecifierNamed:@"Show profile picker on launch"
+            target:self set:@selector(setPreferenceValue:specifier:)
+            get:@selector(readPreferenceValue:) detail:nil cell:PSSwitchCell edit:nil]];
+        [spec setProperty:@"ShowPicker" forKey:@"key"];
+        [spec setProperty:@YES forKey:@"default"];
+        [specs addObject:spec];
 
         _specifiers = specs;
     }

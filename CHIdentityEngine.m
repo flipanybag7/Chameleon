@@ -330,8 +330,9 @@ static NSString *CHDeviceiPhoneModelForProductType(NSString *productType) {
     self = [super init];
     if (self) {
         _identities = [NSMutableDictionary dictionary];
-        _containerSeeds = [NSMutableDictionary dictionary];
-        _identitiesPath = @"/var/mobile/Library/Preferences/com.chameleon.identities.plist";
+        _identitiesPath = [NSString stringWithFormat:@"%@/Library/Chameleon/identities.plist", NSHomeDirectory()];
+        [[NSFileManager defaultManager] createDirectoryAtPath:[_identitiesPath stringByDeletingLastPathComponent]
+                                  withIntermediateDirectories:YES attributes:nil error:nil];
         [self loadIdentities];
     }
     return self;
@@ -342,98 +343,63 @@ static NSString *CHDeviceiPhoneModelForProductType(NSString *productType) {
     return nil;
 }
 
-- (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID {
-    return [self identityForBundleID:bundleID containerSeed:nil];
-}
-
-- (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID containerSeed:(NSString *)containerSeed {
+- (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID containerUUID:(NSString *)uuid {
     if (!bundleID) return nil;
-
-    if (!containerSeed) {
-        containerSeed = self.containerSeeds[bundleID];
-        if (!containerSeed) {
-            containerSeed = [CHIdentityEngine generateSeed];
-            self.containerSeeds[bundleID] = containerSeed;
-        }
-    }
-
-    NSString *identityKey = [NSString stringWithFormat:@"%@|%@", bundleID, containerSeed];
+    NSString *identityKey = [NSString stringWithFormat:@"%@|%@", bundleID, uuid ?: @"default"];
     CHDeviceIdentity *identity = self.identities[identityKey];
-
     if (!identity) {
         identity = [CHDeviceIdentity identityWithSeed:identityKey];
         self.identities[identityKey] = identity;
         [self saveIdentities];
     }
-
     return identity;
 }
 
 - (CHDeviceIdentity *)currentIdentity {
     NSString *bundleID = [self currentBundleID];
     if (!bundleID) return nil;
-    return [self identityForBundleID:bundleID];
+    NSString *uuid = nil;
+    Class cm = objc_getClass("CHContainerManager");
+    if (cm) {
+        uuid = [cm performSelector:@selector(activeContainerForBundleID:) withObject:bundleID];
+    }
+    return [self identityForBundleID:bundleID containerUUID:uuid];
 }
 
 - (NSString *)currentBundleID {
     NSBundle *mainBundle = [NSBundle mainBundle];
     NSString *bundleID = [mainBundle bundleIdentifier];
     if (bundleID) return bundleID;
-
-    NSDictionary *infoDict = [mainBundle infoDictionary];
-    return infoDict[@"CFBundleIdentifier"];
+    return [mainBundle infoDictionary][@"CFBundleIdentifier"];
 }
 
 - (void)resetIdentityForBundleID:(NSString *)bundleID {
-    NSString *containerSeed = self.containerSeeds[bundleID];
-    if (containerSeed) {
-        NSString *identityKey = [NSString stringWithFormat:@"%@|%@", bundleID, containerSeed];
-        [self.identities removeObjectForKey:identityKey];
-        [self.containerSeeds removeObjectForKey:bundleID];
-        [self saveIdentities];
-    }
+    [self resetIdentityForBundleID:bundleID containerUUID:nil];
+}
+
+- (void)resetIdentityForBundleID:(NSString *)bundleID containerUUID:(NSString *)uuid {
+    NSString *key = [NSString stringWithFormat:@"%@|%@", bundleID, uuid ?: @"default"];
+    [self.identities removeObjectForKey:key];
+    [self saveIdentities];
 }
 
 + (NSString *)generateSeed {
-    NSUUID *uuid = [NSUUID UUID];
-    return [uuid UUIDString];
+    return [[NSUUID UUID] UUIDString];
 }
 
 - (void)saveIdentities {
-    NSError *error = nil;
-    NSMutableDictionary *saveDict = [NSMutableDictionary dictionary];
-    saveDict[@"identities"] = self.identities;
-    saveDict[@"containerSeeds"] = self.containerSeeds;
-
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:saveDict requiringSecureCoding:NO error:&error];
-    if (data && !error) {
-        [data writeToFile:self.identitiesPath atomically:YES];
-    }
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:self.identities
+                                         requiringSecureCoding:NO error:nil];
+    if (data) [data writeToFile:self.identitiesPath atomically:YES];
 }
 
 - (void)loadIdentities {
     NSData *data = [NSData dataWithContentsOfFile:self.identitiesPath];
     if (!data) return;
-
-    NSError *error = nil;
-    NSSet *classes = [NSSet setWithObjects:
-                      [NSMutableDictionary class],
-                      [NSDictionary class],
-                      [CHDeviceIdentity class],
-                      [NSString class],
-                      nil];
-    NSDictionary *loaded = [NSKeyedUnarchiver unarchivedObjectOfClasses:classes fromData:data error:&error];
-
-    if (loaded && !error) {
-        NSDictionary *identitiesDict = loaded[@"identities"];
-        if (identitiesDict) {
-            [self.identities addEntriesFromDictionary:identitiesDict];
-        }
-        NSDictionary *seedsDict = loaded[@"containerSeeds"];
-        if (seedsDict) {
-            [self.containerSeeds addEntriesFromDictionary:seedsDict];
-        }
-    }
+    NSSet *classes = [NSSet setWithObjects:[NSMutableDictionary class], [NSDictionary class],
+                      [CHDeviceIdentity class], [NSString class], nil];
+    NSDictionary *loaded = [NSKeyedUnarchiver unarchivedObjectOfClasses:classes fromData:data error:nil];
+    if (loaded) [self.identities addEntriesFromDictionary:loaded];
 }
 
 @end

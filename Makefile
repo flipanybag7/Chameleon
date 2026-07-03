@@ -13,6 +13,8 @@ Chameleon_FILES = Tweak.xm \
                   SysctlHooks.xm \
                   IOKitHooks.xm \
                   NetworkHooks.xm \
+                  CHProfileSelector.xm \
+                  CHContainerManager.m \
                   CHIdentityEngine.m
 
 Chameleon_CFLAGS = -fobjc-arc -I.
@@ -22,7 +24,12 @@ Chameleon_LIBRARIES = substrate
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 BUNDLE_NAME = chameleonprefs
-chameleonprefs_FILES = CHPRootListController.m
+chameleonprefs_FILES = CHPRootListController.m \
+                       CHAppListController.m \
+                       CHProfileListController.m \
+                       CHContainerManager.m \
+                       CHIdentityEngine.m
+
 chameleonprefs_INSTALL_PATH = /Library/PreferenceBundles
 chameleonprefs_CFLAGS = -fobjc-arc -I.
 chameleonprefs_LDFLAGS = -undefined dynamic_lookup

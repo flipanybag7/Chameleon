@@ -39,17 +39,14 @@
 
 @interface CHIdentityEngine : NSObject
 
-@property (nonatomic, strong) NSMutableDictionary<NSString *, CHDeviceIdentity *> *identities;
-@property (nonatomic, strong) NSMutableDictionary<NSString *, NSString *> *containerSeeds;
-@property (nonatomic, copy) NSString *identitiesPath;
-
 + (instancetype)sharedEngine;
 + (BOOL)isHookEnabled:(NSString *)hookKey;
-- (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID;
-- (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID containerSeed:(NSString *)containerSeed;
+
+- (CHDeviceIdentity *)identityForBundleID:(NSString *)bundleID containerUUID:(NSString *)uuid;
 - (CHDeviceIdentity *)currentIdentity;
 - (NSString *)currentBundleID;
 - (void)resetIdentityForBundleID:(NSString *)bundleID;
+- (void)resetIdentityForBundleID:(NSString *)bundleID containerUUID:(NSString *)uuid;
 - (void)saveIdentities;
 - (void)loadIdentities;
 
