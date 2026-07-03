@@ -171,7 +171,7 @@ static CHIdentityEngine *sharedEngine = nil;
     identity.batteryLevel = fmodf(identity.batteryLevel, 0.95f) + 0.05f;
     identity.batteryState = *(int *)batteryHash % 4;
 
-    identity.deviceModel = [CHDeviceiPhoneModelForProductType:identity.productType];
+    identity.deviceModel = CHDeviceiPhoneModelForProductType(identity.productType);
 
     double screenDim[2] = {identity.screenWidth, identity.screenHeight};
     identity.additionalKeys[@"screenDimensions"] = [NSData dataWithBytes:screenDim length:16];
@@ -246,7 +246,7 @@ static CHIdentityEngine *sharedEngine = nil;
     CC_SHA256_Update(&ctx, &prefix, sizeof(prefix));
     CC_SHA256_Final(hash, &ctx);
     return [NSString stringWithFormat:@"%02X:%02X:%02X:%02X:%02X:%02X",
-            prefix, hash[0] & 0xFE | 0x02, hash[1], hash[2], hash[3], hash[4]];
+            prefix, (hash[0] & 0xFE) | 0x02, hash[1], hash[2], hash[3], hash[4]];
 }
 
 + (NSString *)randomHexStringFromSeed:(NSData *)seed length:(int)length subkey:(const char *)subkey {
