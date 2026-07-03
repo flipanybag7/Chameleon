@@ -52,7 +52,7 @@
             NSString *val = [ident valueForKey:valueKey] ?: @"—";
             if ([val isKindOfClass:[NSNull class]] || [val length] == 0) val = @"—";
             PSSpecifier *s = [PSSpecifier preferenceSpecifierNamed:label
-                target:self set:NULL get:NULL detail:nil cell:6 edit:nil];
+                target:self set:NULL get:NULL detail:nil cell:PSTitleValueCell edit:nil];
             [s setProperty:val forKey:@"value"];
             [specs addObject:s];
         };
