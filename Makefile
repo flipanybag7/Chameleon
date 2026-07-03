@@ -13,12 +13,19 @@ Chameleon_FILES = Tweak.xm \
                   SysctlHooks.xm \
                   IOKitHooks.xm \
                   NetworkHooks.xm \
-                  CHIdentityEngine.m \
-                  CHPRootListController.m
+                  CHIdentityEngine.m
 
 Chameleon_CFLAGS = -fobjc-arc -I.
-Chameleon_LDFLAGS = -undefined dynamic_lookup
 Chameleon_FRAMEWORKS = UIKit Foundation CoreGraphics Security AdSupport WebKit CoreTelephony
 Chameleon_LIBRARIES = substrate
 
 include $(THEOS_MAKE_PATH)/tweak.mk
+
+BUNDLE_NAME = chameleonprefs
+chameleonprefs_FILES = CHPRootListController.m
+chameleonprefs_INSTALL_PATH = /Library/PreferenceBundles
+chameleonprefs_CFLAGS = -fobjc-arc -I.
+chameleonprefs_LDFLAGS = -undefined dynamic_lookup
+chameleonprefs_FRAMEWORKS = UIKit Foundation CoreGraphics Security
+
+include $(THEOS_MAKE_PATH)/bundle.mk
