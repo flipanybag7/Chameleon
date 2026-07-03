@@ -22,10 +22,20 @@ jobs:
           git clone --recursive https://github.com/theos/theos.git /opt/theos
           echo "THEOS=/opt/theos" >> $GITHUB_ENV
 
-      - name: Download iOS SDK
+      - name: Setup iOS SDK
         run: |
-          curl -L https://github.com/theos/sdks/raw/master/iPhoneOS16.0.sdk.tar.xz -o /tmp/sdk.tar.xz
-          tar -xJf /tmp/sdk.tar.xz -C /opt/theos/sdks
+          mkdir -p /opt/theos/sdks
+          # Use Xcode's bundled SDK (always available on macOS runners)
+          XCODE_SDK=$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)
+          if [ -n "$XCODE_SDK" ]; then
+            echo "Using Xcode SDK at: $XCODE_SDK"
+            ln -sf "$XCODE_SDK" /opt/theos/sdks/iPhoneOS16.0.sdk
+          else
+            # Fallback: download from theos/sdks releases
+            curl -L -o /tmp/sdk.tar.xz \
+              "https://github.com/theos/sdks/releases/download/iPhoneOS16.0.sdk/iPhoneOS16.0.sdk.tar.xz"
+            tar -xJf /tmp/sdk.tar.xz -C /opt/theos/sdks
+          fi
 
       - name: Build package
         run: |
