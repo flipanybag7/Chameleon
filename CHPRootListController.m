@@ -9,7 +9,38 @@
 
 - (NSArray *)specifiers {
     if (!_specifiers) {
-        _specifiers = [self loadSpecifiersFromPlistName:@"Specifiers" target:self];
+        NSString *suite = @"com.chameleon.prefs";
+        NSArray *toggles = @[
+            @{@"key": @"Enabled", @"label": @"Chameleon Enabled"},
+            @{@"key": @"SpoofUIDevice", @"label": @"Spoof UIDevice"},
+            @{@"key": @"SpoofMGCopyAnswer", @"label": @"Spoof MobileGestalt"},
+            @{@"key": @"SpoofASIdentifier", @"label": @"Spoof Advertising ID"},
+            @{@"key": @"SpoofCanvas", @"label": @"Spoof Canvas / WebGL"},
+            @{@"key": @"SpoofSysctl", @"label": @"Spoof Sysctl"},
+            @{@"key": @"SpoofIOKit", @"label": @"Spoof IOKit"},
+            @{@"key": @"SpoofNetwork", @"label": @"Spoof Carrier Info"},
+        ];
+
+        NSMutableArray *specs = [NSMutableArray array];
+        [specs addObject:[PSSpecifier groupSpecifierWithName:@"Global Control"]];
+        [specs addObject:[PSSpecifier preferenceSpecifierNamed:@"Chameleon Enabled"
+            target:self set:@selector(setPreferenceValue:specifier:)
+            get:@selector(readPreferenceValue:)
+            detail:nil cell:PSSwitchCell edit:nil]];
+
+        [specs addObject:[PSSpecifier groupSpecifierWithName:@"Hooked APIs"]];
+        for (NSDictionary *item in toggles) {
+            if ([item[@"key"] isEqualToString:@"Enabled"]) continue;
+            PSSpecifier *spec = [PSSpecifier preferenceSpecifierNamed:item[@"label"]
+                target:self set:@selector(setPreferenceValue:specifier:)
+                get:@selector(readPreferenceValue:)
+                detail:nil cell:PSSwitchCell edit:nil];
+            [spec setProperty:item[@"key"] forKey:@"key"];
+            [spec setProperty:@YES forKey:@"default"];
+            [specs addObject:spec];
+        }
+
+        _specifiers = specs;
     }
     return _specifiers;
 }
@@ -23,19 +54,6 @@
     NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.chameleon.prefs"];
     [defaults setObject:value forKey:[spec propertyForKey:@"key"]];
     [defaults synchronize];
-}
-
-- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    PSSpecifier *spec = self.specifiers[indexPath.section][indexPath.row];
-    NSString *action = [spec propertyForKey:@"action"];
-    if ([action isEqualToString:@"reset"]) {
-        NSString *bundleID = [NSBundle mainBundle].bundleIdentifier;
-        if (bundleID) [[CHIdentityEngine sharedEngine] resetIdentityForBundleID:bundleID];
-    } else if ([action isEqualToString:@"resetAll"]) {
-        NSString *path = @"/var/mobile/Library/Preferences/com.chameleon.identities.plist";
-        [[NSFileManager defaultManager] removeItemAtPath:path error:nil];
-    }
 }
 
 @end
