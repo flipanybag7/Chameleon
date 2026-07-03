@@ -14,7 +14,10 @@
     if (@available(iOS 13, *)) {
         self.view.backgroundColor = [UIColor systemGroupedBackgroundColor];
     } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         self.view.backgroundColor = [UIColor groupTableViewBackgroundColor];
+#pragma clang diagnostic pop
     }
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
