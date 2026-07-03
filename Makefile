@@ -22,9 +22,9 @@ Chameleon_LIBRARIES = substrate
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 BUNDLE_NAME = chameleonprefs
-chameleonprefs_FILES = CHPRootListController.m
+chameleonprefs_FILES = CHPRootListController.m CHIdentityEngine.m
 chameleonprefs_INSTALL_PATH = /Library/PreferenceBundles
-chameleonprefs_CFLAGS = -fobjc-arc
-chameleonprefs_FRAMEWORKS = UIKit Foundation Preferences
+chameleonprefs_CFLAGS = -fobjc-arc -I.
+chameleonprefs_FRAMEWORKS = UIKit Foundation CoreGraphics Security
 
 include $(THEOS_MAKE_PATH)/bundle.mk
