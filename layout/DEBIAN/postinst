@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Create Chameleon data directory
+mkdir -p /var/mobile/Library/Preferences
+
+# Set proper permissions
+chown -R mobile:mobile /var/mobile/Library/Preferences/com.chameleon.identities.plist 2>/dev/null || true
+
+# Ensure substrate hooks are loaded
+if [ -f /Library/MobileSubstrate/DynamicLibraries/Chameleon.plist ]; then
+    echo "Chameleon: Tweak registered with Substrate"
+fi
+
+# Respring to load tweak
+if [ -f /usr/bin/sbreload ]; then
+    /usr/bin/sbreload
+elif [ -f /usr/bin/killall ]; then
+    /usr/bin/killall -9 SpringBoard
+fi
+
+exit 0

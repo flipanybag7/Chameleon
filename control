@@ -1,0 +1,9 @@
+Package: com.chameleon.antiid
+Name: Chameleon
+Version: 1.0.0
+Architecture: iphoneos-arm64e
+Description: Per-container hardware identity spoofing engine. Generates unique synthetic device fingerprints per app container to prevent fingerprinting-based bans across profiles.
+Maintainer: Chameleon Team
+Author: Chameleon Team
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.7000), firmware (>= 13.0)

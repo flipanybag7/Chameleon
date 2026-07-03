@@ -1,0 +1,50 @@
+#import "CHIdentityEngine.h"
+#import <substrate.h>
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+static void (*orig_UIApplication)(id, SEL);
+static void hooked_UIApplication(id self, SEL _cmd);
+
+%ctor {
+    @autoreleasepool {
+        [CHIdentityEngine sharedEngine];
+
+        MSHookMessageEx(
+            objc_getClass("UIApplication"),
+            @selector(setDelegate:),
+            (IMP)hooked_UIApplication,
+            (IMP *)&orig_UIApplication
+        );
+    }
+}
+
+static void hooked_UIApplication(id self, SEL _cmd) {
+    orig_UIApplication(self, _cmd);
+
+    CHIdentityEngine *engine = [CHIdentityEngine sharedEngine];
+    NSString *bundleID = [engine currentBundleID];
+
+    if (bundleID) {
+        CHDeviceIdentity *identity = [engine identityForBundleID:bundleID];
+
+        if (identity) {
+            NSMutableDictionary *info = [NSMutableDictionary dictionary];
+            info[@"IDFV"] = identity.identifierForVendor ?: @"";
+            info[@"IDFA"] = identity.advertisingIdentifier ?: @"";
+            info[@"DeviceName"] = identity.deviceName ?: @"";
+            info[@"Model"] = identity.deviceModel ?: @"";
+            info[@"ProductType"] = identity.productType ?: @"";
+            info[@"Serial"] = identity.serialNumber ?: @"";
+            info[@"UDID"] = identity.uniqueDeviceID ?: @"";
+            info[@"WiFi"] = identity.wifiAddress ?: @"";
+            info[@"BT"] = identity.bluetoothAddress ?: @"";
+            info[@"BootTime"] = @(identity.bootTimeEpoch);
+            info[@"BatteryLevel"] = @(identity.batteryLevel);
+            info[@"OSVersion"] = identity.systemVersion ?: @"";
+
+            [[NSUserDefaults standardUserDefaults] setObject:info forKey:@"ChameleonIdentity"];
+            [[NSUserDefaults standardUserDefaults] synchronize];
+        }
+    }
+}
