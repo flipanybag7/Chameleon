@@ -1,20 +1,24 @@
 #import "CHIdentityEngine.h"
-#import <IOKit/IOKitLib.h>
 #import <substrate.h>
+#import <dlfcn.h>
+
+typedef unsigned int io_registry_entry_t;
+typedef unsigned int IOOptionBits;
 
 static CFTypeRef (*orig_IORegistryEntryCreateCFProperty)(io_registry_entry_t, CFStringRef, CFAllocatorRef, IOOptionBits);
 static CFTypeRef hooked_IORegistryEntryCreateCFProperty(io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options);
 
-static io_registry_entry_t (*orig_IOServiceGetMatchingService)(mach_port_t, CFDictionaryRef);
-static io_registry_entry_t hooked_IOServiceGetMatchingService(mach_port_t masterPort, CFDictionaryRef matching);
-
 %ctor {
-    MSHookFunction((void *)IORegistryEntryCreateCFProperty,
-                   (void *)hooked_IORegistryEntryCreateCFProperty,
-                   (void **)&orig_IORegistryEntryCreateCFProperty);
-    MSHookFunction((void *)IOServiceGetMatchingService,
-                   (void *)hooked_IOServiceGetMatchingService,
-                   (void **)&orig_IOServiceGetMatchingService);
+    void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOLOAD);
+    if (!iokit) {
+        iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_LAZY | RTLD_LOCAL);
+    }
+    if (iokit) {
+        void *IORegFunc = dlsym(iokit, "IORegistryEntryCreateCFProperty");
+        if (IORegFunc) {
+            MSHookFunction(IORegFunc, (void *)hooked_IORegistryEntryCreateCFProperty, (void **)&orig_IORegistryEntryCreateCFProperty);
+        }
+    }
 }
 
 static CFTypeRef hooked_IORegistryEntryCreateCFProperty(io_registry_entry_t entry, CFStringRef key, CFAllocatorRef allocator, IOOptionBits options) {
@@ -54,8 +58,4 @@ static CFTypeRef hooked_IORegistryEntryCreateCFProperty(io_registry_entry_t entr
     }
 
     return orig_IORegistryEntryCreateCFProperty(entry, key, allocator, options);
-}
-
-static io_registry_entry_t hooked_IOServiceGetMatchingService(mach_port_t masterPort, CFDictionaryRef matching) {
-    return orig_IOServiceGetMatchingService(masterPort, matching);
 }
