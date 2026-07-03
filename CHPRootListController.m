@@ -11,7 +11,11 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = @"Chameleon";
-    self.view.backgroundColor = [UIColor groupTableViewBackgroundColor];
+    if (@available(iOS 13, *)) {
+        self.view.backgroundColor = [UIColor systemGroupedBackgroundColor];
+    } else {
+        self.view.backgroundColor = [UIColor groupTableViewBackgroundColor];
+    }
 
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
     self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
