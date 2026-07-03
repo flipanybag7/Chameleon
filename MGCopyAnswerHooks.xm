@@ -1,17 +1,28 @@
 #import "CHIdentityEngine.h"
-#import <MobileGestalt/MobileGestalt.h>
 #import <substrate.h>
+#import <dlfcn.h>
 
-static CFTypeRef (*orig_MGCopyAnswer)(CFStringRef key);
+typedef CFTypeRef (*MGCopyAnswerFunc)(CFStringRef key);
+
+static MGCopyAnswerFunc orig_MGCopyAnswer = NULL;
 static CFTypeRef hooked_MGCopyAnswer(CFStringRef key);
 
 %ctor {
-    MSHookFunction((void *)MGCopyAnswer, (void *)hooked_MGCopyAnswer, (void **)&orig_MGCopyAnswer);
+    void *handle = dlopen("/System/Library/PrivateFrameworks/MobileGestalt.framework/MobileGestalt", RTLD_NOLOAD);
+    if (!handle) {
+        handle = dlopen("/System/Library/PrivateFrameworks/MobileGestalt.framework/MobileGestalt", RTLD_LAZY | RTLD_LOCAL);
+    }
+    if (handle) {
+        void *func = dlsym(handle, "MGCopyAnswer");
+        if (func) {
+            MSHookFunction(func, (void *)hooked_MGCopyAnswer, (void **)&orig_MGCopyAnswer);
+        }
+    }
 }
 
 static CFTypeRef hooked_MGCopyAnswer(CFStringRef key) {
-    if (!key) {
-        return orig_MGCopyAnswer(key);
+    if (!key || !orig_MGCopyAnswer) {
+        return orig_MGCopyAnswer ? orig_MGCopyAnswer(key) : NULL;
     }
 
     NSString *keyStr = (__bridge NSString *)key;

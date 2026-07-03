@@ -16,7 +16,6 @@ Chameleon_FILES = Tweak.xm \
 
 Chameleon_CFLAGS = -fobjc-arc -I.
 Chameleon_FRAMEWORKS = UIKit Foundation CoreGraphics Security AdSupport WebKit CoreTelephony
-Chameleon_PRIVATE_FRAMEWORKS = MobileGestalt
 Chameleon_LIBRARIES = substrate
 
 include $(THEOS_MAKE_PATH)/tweak.mk
