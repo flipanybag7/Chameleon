@@ -1,5 +1,6 @@
 #import "CHIdentityEngine.h"
 #import <sys/sysctl.h>
+#import <substrate.h>
 
 static int (*orig_sysctl)(int *, u_int, void *, size_t *, void *, size_t);
 static int hooked_sysctl(int *mib, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
