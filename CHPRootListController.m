@@ -9,7 +9,6 @@
 
 - (NSArray *)specifiers {
     if (!_specifiers) {
-        NSString *suite = @"com.chameleon.prefs";
         NSArray *toggles = @[
             @{@"key": @"Enabled", @"label": @"Chameleon Enabled"},
             @{@"key": @"SpoofUIDevice", @"label": @"Spoof UIDevice"},
