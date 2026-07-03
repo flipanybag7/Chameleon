@@ -120,7 +120,8 @@ static int hooked_sysctlbyname(const char *name, void *oldp, size_t *oldlenp, vo
     }
 
     if ([nameStr isEqualToString:@"kern.hostname"]) {
-        const char *val = [[identity.deviceName UTF8String] ?: "iPhone" UTF8String];
+        NSString *hostname = identity.deviceName ?: @"iPhone";
+        const char *val = [hostname UTF8String];
         size_t needed = strlen(val) + 1;
         if (*oldlenp >= needed) {
             memcpy(oldp, val, needed);
