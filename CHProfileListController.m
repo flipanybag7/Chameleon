@@ -11,7 +11,7 @@
 
 - (NSArray *)specifiers {
     if (!_specifiers) {
-        NSString *bundleID = [self propertyForKey:@"bundleID"];
+        NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
 
         NSMutableArray *specs = [NSMutableArray array];
         [specs addObject:[PSSpecifier groupSpecifierWithName:
@@ -34,7 +34,7 @@
             [spec setProperty:isActive ? @"switch" : @"select" forKey:@"action"];
 
             if (!isActive) {
-                [spec setProperty:@selector(activateProfile:) forKey:@"lazyAltAction"];
+                [spec setProperty:NSStringFromSelector(@selector(activateProfile:)) forKey:@"lazyAltAction"];
             }
             [specs addObject:spec];
 
@@ -86,7 +86,7 @@
     [alert addAction:[UIAlertAction actionWithTitle:@"Create" style:UIAlertActionStyleDefault
         handler:^(UIAlertAction *action) {
         NSString *name = alert.textFields.firstObject.text ?: @"New Profile";
-        NSString *bundleID = [self propertyForKey:@"bundleID"];
+        NSString *bundleID = [[self specifier] propertyForKey:@"bundleID"];
         if (bundleID) {
             [[CHContainerManager sharedManager] createContainerForBundleID:bundleID name:name];
             _specifiers = nil;
