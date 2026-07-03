@@ -2,121 +2,60 @@
 #import <substrate.h>
 #include <notify.h>
 
-static void showSettingsPanel(void);
+static void (*orig_UIApplication)(id, SEL);
+static void hooked_UIApplication(id self, SEL _cmd);
 
-%hook UIApplication
+%ctor {
+    @autoreleasepool {
+        NSDictionary *defaultPrefs = @{
+            @"Enabled": @YES,
+            @"SpoofUIDevice": @YES,
+            @"SpoofMGCopyAnswer": @YES,
+            @"SpoofASIdentifier": @YES,
+            @"SpoofCanvas": @YES,
+            @"SpoofSysctl": @YES,
+            @"SpoofIOKit": @YES,
+            @"SpoofNetwork": @YES,
+        };
+        [[[NSUserDefaults alloc] initWithSuiteName:@"com.chameleon.prefs"] registerDefaults:defaultPrefs];
 
-- (void)applicationDidFinishLaunching:(id)application {
-    %orig;
+        [CHIdentityEngine sharedEngine];
 
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        int token;
-        notify_register_dispatch("com.chameleon.openSettings", &token, dispatch_get_main_queue(), ^(int t) {
-            showSettingsPanel();
-        });
-    });
+        MSHookMessageEx(
+            objc_getClass("UIApplication"),
+            @selector(setDelegate:),
+            (IMP)hooked_UIApplication,
+            (IMP *)&orig_UIApplication
+        );
+    }
 }
 
-- (void)sendEvent:(UIEvent *)event {
-    if (event.type == UIEventTypeMotion && event.subtype == UIEventSubtypeMotionShake) {
-        showSettingsPanel();
-    }
-    %orig;
-}
+static void hooked_UIApplication(id self, SEL _cmd) {
+    orig_UIApplication(self, _cmd);
 
-%end
+    CHIdentityEngine *engine = [CHIdentityEngine sharedEngine];
+    NSString *bundleID = [engine currentBundleID];
 
-static void showSettingsPanel(void) {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Chameleon"
-                                                                   message:nil
-                                                            preferredStyle:UIAlertControllerStyleActionSheet];
+    if (bundleID) {
+        CHDeviceIdentity *identity = [engine identityForBundleID:bundleID];
 
-    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.chameleon.prefs"];
-    [defaults registerDefaults:@{
-        @"Enabled": @YES,
-        @"SpoofUIDevice": @YES,
-        @"SpoofMGCopyAnswer": @YES,
-        @"SpoofASIdentifier": @YES,
-        @"SpoofCanvas": @YES,
-        @"SpoofSysctl": @YES,
-        @"SpoofIOKit": @YES,
-        @"SpoofNetwork": @YES,
-    }];
+        if (identity) {
+            NSMutableDictionary *info = [NSMutableDictionary dictionary];
+            info[@"IDFV"] = identity.identifierForVendor ?: @"";
+            info[@"IDFA"] = identity.advertisingIdentifier ?: @"";
+            info[@"DeviceName"] = identity.deviceName ?: @"";
+            info[@"Model"] = identity.deviceModel ?: @"";
+            info[@"ProductType"] = identity.productType ?: @"";
+            info[@"Serial"] = identity.serialNumber ?: @"";
+            info[@"UDID"] = identity.uniqueDeviceID ?: @"";
+            info[@"WiFi"] = identity.wifiAddress ?: @"";
+            info[@"BT"] = identity.bluetoothAddress ?: @"";
+            info[@"BootTime"] = @(identity.bootTimeEpoch);
+            info[@"BatteryLevel"] = @(identity.batteryLevel);
+            info[@"OSVersion"] = identity.systemVersion ?: @"";
 
-    NSArray *toggles = @[
-        @{@"key": @"Enabled", @"label": @"Chameleon Enabled"},
-        @{@"key": @"SpoofUIDevice", @"label": @"Spoof UIDevice"},
-        @{@"key": @"SpoofMGCopyAnswer", @"label": @"Spoof MobileGestalt"},
-        @{@"key": @"SpoofASIdentifier", @"label": @"Spoof Advertising ID"},
-        @{@"key": @"SpoofCanvas", @"label": @"Spoof Canvas / WebGL"},
-        @{@"key": @"SpoofSysctl", @"label": @"Spoof Sysctl"},
-        @{@"key": @"SpoofIOKit", @"label": @"Spoof IOKit"},
-        @{@"key": @"SpoofNetwork", @"label": @"Spoof Carrier Info"},
-    ];
-
-    for (NSDictionary *item in toggles) {
-        NSString *key = item[@"key"];
-        NSString *label = item[@"label"];
-        BOOL on = [defaults boolForKey:key];
-        NSString *status = on ? @"✅" : @"❌";
-
-        [alert addAction:[UIAlertAction actionWithTitle:[NSString stringWithFormat:@"%@  %@", status, label]
-                                                  style:UIAlertActionStyleDefault
-                                                handler:^(UIAlertAction *action) {
-            [defaults setBool:!on forKey:key];
-            [defaults synchronize];
-        }]];
-    }
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Reset Identity (current app)"
-                                              style:UIAlertActionStyleDestructive
-                                            handler:^(UIAlertAction *action) {
-        NSString *bundleID = [NSBundle mainBundle].bundleIdentifier;
-        if (bundleID) {
-            [[CHIdentityEngine sharedEngine] resetIdentityForBundleID:bundleID];
-        }
-    }]];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Reset All Identities"
-                                              style:UIAlertActionStyleDestructive
-                                            handler:^(UIAlertAction *action) {
-        NSString *path = @"/var/mobile/Library/Preferences/com.chameleon.identities.plist";
-        [[NSFileManager defaultManager] removeItemAtPath:path error:nil];
-    }]];
-
-    [alert addAction:[UIAlertAction actionWithTitle:@"Close"
-                                              style:UIAlertActionStyleCancel
-                                            handler:nil]];
-
-    UIViewController *rootVC = nil;
-    if (@available(iOS 13, *)) {
-        NSSet<UIScene *> *scenes = [UIApplication sharedApplication].connectedScenes;
-        for (UIScene *scene in scenes) {
-            if (scene.activationState == UISceneActivationStateForegroundActive) {
-                UIWindowScene *ws = (UIWindowScene *)scene;
-                for (UIWindow *win in ws.windows) {
-                    if (win.isKeyWindow) { rootVC = win.rootViewController; break; }
-                }
-            }
-            if (rootVC) break;
+            [[NSUserDefaults standardUserDefaults] setObject:info forKey:@"ChameleonIdentity"];
+            [[NSUserDefaults standardUserDefaults] synchronize];
         }
     }
-    if (!rootVC) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
-#pragma clang diagnostic pop
-    }
-    while (rootVC.presentedViewController) {
-        rootVC = rootVC.presentedViewController;
-    }
-
-    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
-        alert.popoverPresentationController.sourceView = rootVC.view;
-        alert.popoverPresentationController.sourceRect = CGRectMake(CGRectGetMidX(rootVC.view.bounds), CGRectGetMidY(rootVC.view.bounds), 0, 0);
-        alert.popoverPresentationController.permittedArrowDirections = 0;
-    }
-
-    [rootVC presentViewController:alert animated:YES completion:nil];
 }
