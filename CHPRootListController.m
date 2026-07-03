@@ -1,5 +1,6 @@
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
+#import <objc/runtime.h>
 #import "CHContainerManager.h"
 #import "CHIdentityEngine.h"
 
