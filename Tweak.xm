@@ -18,15 +18,11 @@ static void showSettingsPanel(void);
     });
 }
 
-%end
-
-%hook UIWindow
-
-- (void)motionEnded:(UIEventSubtype)motion withEvent:(UIEvent *)event {
-    %orig;
-    if (motion == UIEventSubtypeMotionShake) {
+- (void)sendEvent:(UIEvent *)event {
+    if (event.type == UIEventTypeMotion && event.subtype == UIEventSubtypeMotionShake) {
         showSettingsPanel();
     }
+    %orig;
 }
 
 %end
