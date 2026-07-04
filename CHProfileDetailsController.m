@@ -21,6 +21,18 @@
     [self reloadSpecifiers];
 }
 
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    PSSpecifier *spec = _specifiers[indexPath.section][indexPath.row];
+    NSString *val = [spec propertyForKey:@"chameleonValue"];
+    if (val) {
+        cell.detailTextLabel.text = val;
+        cell.detailTextLabel.font = [UIFont systemFontOfSize:12];
+        cell.detailTextLabel.textColor = [UIColor grayColor];
+    }
+    return cell;
+}
+
 - (NSArray *)specifiers {
     if (!_specifiers) {
         NSString *bundleID = self.bundleID ?: [[self specifier] propertyForKey:@"bundleID"];
@@ -53,7 +65,7 @@
             if ([val isKindOfClass:[NSNull class]] || [val length] == 0) val = @"—";
             PSSpecifier *s = [PSSpecifier preferenceSpecifierNamed:label
                 target:self set:NULL get:NULL detail:nil cell:PSTitleValueCell edit:nil];
-            [s setProperty:val forKey:@"value"];
+            [s setProperty:val forKey:@"chameleonValue"];
             [specs addObject:s];
         };
 
