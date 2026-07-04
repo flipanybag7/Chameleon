@@ -14,6 +14,7 @@ Chameleon_FILES = Tweak.xm \
                   IOKitHooks.xm \
                   NetworkHooks.xm \
                   CHProfileSelector.xm \
+                  CHKeychainHooks.xm \
                   CHContainerManager.m \
                   CHIdentityEngine.m
 

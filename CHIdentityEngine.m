@@ -1,4 +1,5 @@
 #import "CHIdentityEngine.h"
+#import "CHDeviceProfiles.h"
 #import <CommonCrypto/CommonCrypto.h>
 #import <objc/runtime.h>
 #import <sys/stat.h>
@@ -97,57 +98,40 @@ static CHIdentityEngine *sharedEngine = nil;
     identity.ICCID = [CHDeviceIdentity randomICCIDFromSeed:seedData];
     identity.basebandSerial = [CHDeviceIdentity randomSerialFromSeed:seedData];
 
-    NSArray *models = @[
-        @"iPhone14,2", @"iPhone14,3", @"iPhone14,4", @"iPhone14,5",
-        @"iPhone15,2", @"iPhone15,3", @"iPhone15,4", @"iPhone15,5",
-        @"iPhone16,1", @"iPhone16,2"
-    ];
-    NSArray *hwModels = @[
-        @"D73AP", @"D74AP", @"D75AP", @"D76AP",
-        @"D83AP", @"D84AP", @"D85AP", @"D86AP",
-        @"D37AP", @"D38AP"
-    ];
-    NSArray *deviceNames = @[
-        @"iPhone", @"iPhone", @"my iPhone", @"phone",
-        @"iPhone Pro", @"iPhone Max", @"device"
-    ];
+    NSArray *profiles = DeviceProfiles();
+    unsigned char profileIdx = 0;
+    CC_SHA256_CTX profileCtx;
+    CC_SHA256_Init(&profileCtx);
+    CC_SHA256_Update(&profileCtx, [seedData bytes], (CC_LONG)[seedData length]);
+    CC_SHA256_Final(&profileIdx, &profileCtx);
+    NSDictionary *profile = profiles[profileIdx % profiles.count];
 
-    CC_SHA256_CTX modelCtx;
-    unsigned char modelHash[CC_SHA256_DIGEST_LENGTH];
-    CC_SHA256_Init(&modelCtx);
-    CC_SHA256_Update(&modelCtx, [seedData bytes], (CC_LONG)[seedData length]);
-    CC_SHA256_Update(&modelCtx, "model", 5);
-    CC_SHA256_Final(modelHash, &modelCtx);
+    identity.productType = profile[@"machine"];
+    identity.hwModel = profile[@"model"];
+    identity.screenWidth = [profile[@"resW"] floatValue] / [profile[@"scale"] floatValue];
+    identity.screenHeight = [profile[@"resH"] floatValue] / [profile[@"scale"] floatValue];
+    identity.screenScale = [profile[@"scale"] floatValue];
 
-    NSUInteger modelIdx = *(NSUInteger *)modelHash % models.count;
-    identity.productType = models[modelIdx];
-    identity.hwModel = hwModels[modelIdx];
+    NSString *minVer = profile[@"minVer"];
+    NSString *maxVer = profile[@"maxVer"];
+    NSArray *allVers = @[@"15.0",@"15.4",@"15.7",@"16.0",@"16.3",@"16.6",
+                         @"17.0",@"17.4",@"17.6",@"18.0",@"18.2",@"18.4",@"18.5"];
+    NSMutableArray *valid = [NSMutableArray array];
+    for (NSString *v in allVers) {
+        if ([v compare:minVer options:NSNumericSearch] != NSOrderedAscending &&
+            [v compare:maxVer options:NSNumericSearch] != NSOrderedDescending) {
+            [valid addObject:v];
+        }
+    }
+    unsigned char verIdx;
+    CC_SHA256_CTX versionCtx;
+    CC_SHA256_Init(&versionCtx);
+    CC_SHA256_Update(&versionCtx, [seedData bytes], (CC_LONG)[seedData length]);
+    CC_SHA256_Update(&versionCtx, "osver", 5);
+    CC_SHA256_Final(&verIdx, &versionCtx);
+    identity.systemVersion = valid.count ? valid[verIdx % valid.count] : minVer;
 
-    CC_SHA256_CTX verCtx;
-    unsigned char versionHash[CC_SHA256_DIGEST_LENGTH];
-    CC_SHA256_Init(&verCtx);
-    CC_SHA256_Update(&verCtx, [seedData bytes], (CC_LONG)[seedData length]);
-    CC_SHA256_Update(&verCtx, "vers", 4);
-    CC_SHA256_Final(versionHash, &verCtx);
-
-    int minor = *(int *)versionHash % 10 + 1;
-    int patch = *(int *)(versionHash + 4) % 10;
-    identity.systemVersion = [NSString stringWithFormat:@"%d.%d.%d", 16, minor, patch];
-
-    CC_SHA256_CTX nameCtx;
-    unsigned char nameHash[CC_SHA256_DIGEST_LENGTH];
-    CC_SHA256_Init(&nameCtx);
-    CC_SHA256_Update(&nameCtx, [seedData bytes], (CC_LONG)[seedData length]);
-    CC_SHA256_Update(&nameCtx, "name", 4);
-    CC_SHA256_Final(nameHash, &nameCtx);
-
-    NSUInteger nameIdx = *(NSUInteger *)nameHash % deviceNames.count;
-    int nameSuffix = *(int *)(nameHash + 4) % 9999;
-    identity.deviceName = [NSString stringWithFormat:@"%@ %d", deviceNames[nameIdx], nameSuffix];
-
-    identity.screenWidth = 390.0;
-    identity.screenHeight = 844.0;
-    identity.screenScale = 3.0;
+    identity.fakeMemorySize = [profile[@"mem"] unsignedLongLongValue];
 
     CC_SHA256_CTX brightCtx;
     unsigned char brightnessHash[CC_SHA256_DIGEST_LENGTH];
@@ -158,8 +142,6 @@ static CHIdentityEngine *sharedEngine = nil;
     identity.screenBrightness = (*(float *)brightnessHash * 0.1f + 0.3f);
 
     identity.bootTimeEpoch = [[NSDate date] timeIntervalSince1970] - (86400 * (*(int *)versionHash % 30 + 1));
-
-    identity.fakeMemorySize = (uint64_t)(6LL * 1024 * 1024 * 1024 + *(int64_t *)versionHash % (1024LL * 1024 * 1024));
 
     CC_SHA256_CTX battCtx;
     unsigned char batteryHash[CC_SHA256_DIGEST_LENGTH];
