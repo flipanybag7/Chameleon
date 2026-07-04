@@ -141,7 +141,7 @@ static CHIdentityEngine *sharedEngine = nil;
     CC_SHA256_Final(brightnessHash, &brightCtx);
     identity.screenBrightness = (*(float *)brightnessHash * 0.1f + 0.3f);
 
-    identity.bootTimeEpoch = [[NSDate date] timeIntervalSince1970] - (86400 * (*(int *)versionHash % 30 + 1));
+    identity.bootTimeEpoch = [[NSDate date] timeIntervalSince1970] - (86400 * (*(int *)brightnessHash % 30 + 1));
 
     CC_SHA256_CTX battCtx;
     unsigned char batteryHash[CC_SHA256_DIGEST_LENGTH];
